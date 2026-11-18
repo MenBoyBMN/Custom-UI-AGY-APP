@@ -34,6 +34,7 @@ async function buildExe() {
     icon: fs.existsSync(iconPath) ? iconPath : undefined,
     ignore: [
       /^\/release($|\/)/,
+      /^\/docs($|\/)/,
       /^\/test($|\/)/,
       /^\/scripts($|\/)/,
       /^\/node_modules($|\/)/,
