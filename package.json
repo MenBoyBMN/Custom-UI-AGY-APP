@@ -1,7 +1,7 @@
 {
   "name": "agy-ui-studio",
   "productName": "AGY UI Studio",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Bộ công cụ tùy biến giao diện, hình nền động, âm nhạc, hiệu ứng và bố cục cho Antigravity Desktop App",
   "main": "src/main/main.js",
   "scripts": {
