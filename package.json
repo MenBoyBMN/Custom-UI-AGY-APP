@@ -1,0 +1,37 @@
+{
+  "name": "agy-ui-studio",
+  "productName": "AGY UI Studio",
+  "version": "1.0.0",
+  "description": "Bộ công cụ tùy biến giao diện, hình nền động, âm nhạc, hiệu ứng và bố cục cho Antigravity Desktop App",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "generate-assets": "node scripts/generateStarterAssets.js",
+    "test": "node test/verifyPatcherAndAssets.js",
+    "test:e2e": "electron test/verifyElectronRuntime.js",
+    "pack-exe": "node scripts/buildExe.js"
+  },
+  "author": "MenBoyBMN",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MenBoyBMN/Custom-UI-AGY-APP.git"
+  },
+  "homepage": "https://github.com/MenBoyBMN/Custom-UI-AGY-APP#readme",
+  "bugs": {
+    "url": "https://github.com/MenBoyBMN/Custom-UI-AGY-APP/issues"
+  },
+  "keywords": [
+    "antigravity",
+    "electron",
+    "ui-customizer",
+    "theme",
+    "glassmorphism",
+    "live-wallpaper",
+    "windows"
+  ],
+  "devDependencies": {
+    "@electron/packager": "^18.3.6",
+    "electron": "^33.2.0"
+  }
+}

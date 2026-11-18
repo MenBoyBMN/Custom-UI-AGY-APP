@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#070210"/>
+      <stop offset="55%" stop-color="#1f093d"/>
+      <stop offset="65%" stop-color="#701a75"/>
+      <stop offset="100%" stop-color="#090314"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#facc15"/>
+      <stop offset="50%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+  <circle cx="960" cy="580" r="210" fill="url(#sun)" opacity="0.88">
+    <animate attributeName="r" values="208;218;208" dur="6s" repeatCount="indefinite"/>
+  </circle>
+  <rect y="640" width="1920" height="440" fill="#080212" opacity="0.92"/>
+  <g stroke="#06b6d4" stroke-width="2" stroke-opacity="0.45">
+    <line x1="0" y1="640" x2="1920" y2="640" stroke="#f43f5e" stroke-width="3"/>
+    <line x1="960" y1="640" x2="-400" y2="1080"/>
+    <line x1="960" y1="640" x2="100" y2="1080"/>
+    <line x1="960" y1="640" x2="500" y2="1080"/>
+    <line x1="960" y1="640" x2="800" y2="1080"/>
+    <line x1="960" y1="640" x2="1120" y2="1080"/>
+    <line x1="960" y1="640" x2="1420" y2="1080"/>
+    <line x1="960" y1="640" x2="1820" y2="1080"/>
+    <line x1="960" y1="640" x2="2320" y2="1080"/>
+    <line x1="0" y1="690" x2="1920" y2="690">
+      <animate attributeName="y1" values="650;1080" dur="4s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="650;1080" dur="4s" repeatCount="indefinite"/>
+    </line>
+    <line x1="0" y1="780" x2="1920" y2="780">
+      <animate attributeName="y1" values="650;1080" dur="4s" begin="1.3s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="650;1080" dur="4s" begin="1.3s" repeatCount="indefinite"/>
+    </line>
+    <line x1="0" y1="900" x2="1920" y2="900">
+      <animate attributeName="y1" values="650;1080" dur="4s" begin="2.6s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="650;1080" dur="4s" begin="2.6s" repeatCount="indefinite"/>
+    </line>
+  </g>
+</svg>

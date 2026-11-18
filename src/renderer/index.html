@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AGY UI Studio — Tùy Biến Giao Diện Antigravity App</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="studio-app">
+    <!-- Top Header Bar -->
+    <header class="studio-header">
+      <div class="brand-area">
+        <div class="brand-orb" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">AGY UI STUDIO <span class="version-pill">PRO v2.0</span></div>
+          <div class="brand-sub">Không gian thiết kế giao diện, âm thanh &amp; hiệu ứng dịu mắt cho Antigravity</div>
+        </div>
+      </div>
+
+      <div class="path-status-bar">
+        <div class="status-dot" id="agy-status-dot"></div>
+        <div class="path-info">
+          <div class="path-label">
+            <span id="agy-status-text">Đang quét thư mục gốc Antigravity App...</span>
+            <span class="patch-badge" id="agy-patch-badge">Kiểm tra...</span>
+          </div>
+          <div class="path-value" id="agy-path-display">Chưa chọn thư mục</div>
+        </div>
+        <button class="btn-ghost" id="btn-change-folder" title="Chọn thủ công thư mục gốc của AGY App">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>Chọn thư mục</span>
+        </button>
+        <button class="btn-ghost" id="btn-open-folder" title="Mở thư mục cài đặt AGY trong Explorer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+          <span>Mở Folder</span>
+        </button>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn-secondary" id="btn-launch-agy" title="Khởi chạy Antigravity App">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span>Mở AGY App</span>
+        </button>
+        <button class="btn-danger" id="btn-restore-agy" title="Khôi phục AGY App về giao diện nguyên bản từ đầu">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          <span>Khôi phục gốc</span>
+        </button>
+        <button class="btn-primary-glow" id="btn-apply-agy">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>Áp dụng vào AGY</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="studio-main">
+      <!-- Left Sidebar Navigation -->
+      <aside class="studio-sidebar">
+        <div class="nav-group-label">DANH MỤC TÙY BIẾN</div>
+        <button class="nav-item active" data-section="themes">
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
+              <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+              <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle>
+              <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+            </svg>
+          </span>
+          <div>
+            <div class="nav-title">Bảng Màu &amp; Kính Mờ</div>
+            <div class="nav-desc">8 Preset dịu mắt &amp; thông số kính</div>
+          </div>
+        </button>
+        <button class="nav-item" data-section="wallpaper">
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </span>
+          <div>
+            <div class="nav-title">Hình Nền &amp; Đồng Bộ</div>
+            <div class="nav-desc">Canvas 60FPS, SVG, GIF &amp; Video</div>
+          </div>
+        </button>
+        <button class="nav-item" data-section="music">
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18V5l12-2v13"></path>
+              <circle cx="6" cy="18" r="3"></circle>
+              <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+          </span>
+          <div>
+            <div class="nav-title">Nhạc Nền &amp; Phím Cơ</div>
+            <div class="nav-desc">Lo-Fi Offline &amp; âm gõ phím êm</div>
+          </div>
+        </button>
+        <button class="nav-item" data-section="effects">
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"></path>
+            </svg>
+          </span>
+          <div>
+            <div class="nav-title">Hiệu Ứng Môi Trường</div>
+            <div class="nav-desc">Hạt ánh sáng, Con trỏ &amp; Eco Mode</div>
+          </div>
+        </button>
+        <button class="nav-item" data-section="layout">
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+          </span>
+          <div>
+            <div class="nav-title">Bố Cục &amp; Kiểu Chữ</div>
+            <div class="nav-desc">Độ rộng khung Chat, Prompt &amp; Font</div>
+          </div>
+        </button>
+        <button class="nav-item" data-section="backup">
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+          </span>
+          <div>
+            <div class="nav-title">CSS Riêng &amp; Sao Lưu</div>
+            <div class="nav-desc">Custom CSS, Xuất/Nhập JSON</div>
+          </div>
+        </button>
+
+        <div class="sidebar-footer-card">
+          <div class="sf-row">
+            <span>Trạng thái Giao diện</span>
+            <label class="switch">
+              <input type="checkbox" id="master-enable-toggle" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="sf-hint">
+            Sau khi nhấn <b>Áp dụng</b>, mở AGY App và nhấn <code>Ctrl + Shift + Y</code> hoặc nút <b>AGY Studio</b> trên thanh công cụ để chỉnh trực tiếp.
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center Controls Panel -->
+      <section class="studio-controls" id="studio-controls-panel">
+        <!-- Dynamically rendered by app.js -->
+      </section>
+
+      <!-- Right Interactive Live Preview -->
+      <section class="studio-preview-column">
+        <div class="preview-header">
+          <div class="preview-header-left">
+            <span class="preview-badge"><span class="preview-live-dot"></span>LIVE PREVIEW</span>
+            <span class="preview-title">Mô phỏng thời gian thực Antigravity App</span>
+          </div>
+          <div class="preview-music-bar" id="preview-music-bar">
+            <button id="prev-m-prev" title="Bài trước" aria-label="Bài trước">⏮</button>
+            <button id="prev-m-play" title="Nghe thử nhạc nền">▶ Nghe nhạc</button>
+            <button id="prev-m-next" title="Bài tiếp" aria-label="Bài tiếp">⏭</button>
+            <span id="prev-m-label">Lo-Fi Chill Study Beats</span>
+          </div>
+        </div>
+
+        <!-- Simulated AGY Window -->
+        <div class="agy-mock-window" id="agy-mock-window">
+          <div class="agy-mock-titlebar">
+            <div class="mock-win-dots">
+              <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+            </div>
+            <div class="mock-win-title" id="mock-win-title">Antigravity — Agentic Desktop</div>
+            <div class="mock-win-shortcut">Ctrl + Shift + Y</div>
+          </div>
+
+          <div class="agy-mock-body" id="agy-mock-body">
+            <!-- Mock Sidebar -->
+            <div class="agy-mock-sidebar" id="agy-mock-sidebar">
+              <div class="mock-sb-btn">+ Cuộc trò chuyện mới</div>
+              <div class="mock-sb-section-label">PROJECTS</div>
+              <div class="mock-sb-item active">Thiết kế giao diện Custom AGY</div>
+              <div class="mock-sb-item">Tối ưu hiệu năng 60FPS</div>
+              <div class="mock-sb-item">Tích hợp âm thanh Lo-Fi</div>
+              <div class="mock-sb-footer">Workspace: Custom AGY</div>
+            </div>
+
+            <!-- Mock Main Chat Area -->
+            <div class="agy-mock-chat-area" id="agy-mock-chat-area">
+              <div class="agy-mock-subheader">
+                <div class="mock-inapp-pill" id="mock-inapp-pill" title="Nút này sẽ xuất hiện cạnh nút 3 chấm và Open IDE trong AGY App của bạn">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                    <polyline points="2 17 12 22 22 17"></polyline>
+                    <polyline points="2 12 12 17 22 12"></polyline>
+                  </svg>
+                  <span>AGY Studio</span>
+                </div>
+                <span class="mock-dots-btn" title="More options">⋮</span>
+                <span class="mock-open-ide-pill">Open IDE</span>
+              </div>
+
+              <div class="agy-mock-messages" id="agy-mock-messages">
+                <div class="mock-msg user" id="mock-msg-user">
+                  <div class="mock-msg-role">Bạn (User)</div>
+                  <div class="mock-msg-text">Hãy thiết kế lại giao diện tinh tế, dịu mắt với lớp kính mờ cân bằng, hình nền sâu và âm thanh phím cơ êm ái.</div>
+                </div>
+                <div class="mock-msg ai" id="mock-msg-ai">
+                  <div class="mock-msg-role">Antigravity Agent</div>
+                  <div class="mock-msg-text">
+                    Giao diện mới đã được cân chỉnh độ tương phản chuẩn <b>Eye-Comfort Dark Mode</b>, loại bỏ các viền sáng chói mắt và đồng bộ bảng màu tự nhiên.
+                    <pre class="mock-code-block"><code>// Tác động 100% ở tầng Frontend — Dịu mắt &amp; Mượt 60FPS
+const studioTheme = { contrast: 'eye-comfort', glare: 'none', hotkey: 'Ctrl+Shift+Y' };</code></pre>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mock Prompt Box (Interactive for testing typing sounds!) -->
+              <div class="agy-mock-prompt-wrap" id="agy-mock-prompt-wrap">
+                <input
+                  type="text"
+                  id="mock-prompt-input"
+                  class="agy-mock-prompt-input"
+                  placeholder="Gõ thử vào đây để nghe âm thanh bàn phím cơ &amp; nhấn Enter để gửi..."
+                />
+                <button class="agy-mock-send-btn" id="mock-send-btn">Gửi ↵</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Folder Not Found / Manual Selection Modal -->
+  <div class="modal-backdrop" id="folder-modal" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-icon" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </div>
+      <h3 id="modal-title">Chọn Thư Mục Gốc Của Antigravity App</h3>
+      <p id="modal-desc">
+        Vui lòng chọn thư mục gốc của <b>Antigravity App</b> (nơi chứa file <code>Antigravity.exe</code> và thư mục <code>resources/app.asar</code>).
+      </p>
+      <div class="modal-input-row">
+        <input type="text" id="modal-path-input" placeholder="Ví dụ: C:\Users\YourName\AppData\Local\Programs\Antigravity" />
+        <button class="btn-secondary" id="modal-browse-btn">Duyệt chọn...</button>
+      </div>
+      <div class="modal-error" id="modal-error-msg"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="modal-close-btn">Đóng</button>
+        <button class="btn-primary-glow" id="modal-confirm-btn">Xác nhận thư mục</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="studio-toast" id="studio-toast"></div>
+
+  <script src="presets.js"></script>
+  <script>
+    window.__IS_STANDALONE_AGY_STUDIO__ = true;
+  </script>
+  <script src="../injected/agyInjectorRuntime.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

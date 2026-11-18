@@ -1,0 +1,5 @@
+node_modules/
+release/
+AGY-UI-Studio.exe
+test/.tmp-*
+*.log
