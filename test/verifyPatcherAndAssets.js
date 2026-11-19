@@ -10,6 +10,8 @@ const {
   readAsarArchive,
   rebuildAsarArchive,
   readAsarFileUtf8,
+  classifyAgyProcesses,
+  isRunningAgyStale,
   applyCustomizationToAgy,
   restoreOriginalAgy
 } = require('../src/main/asarPatcher');
@@ -280,7 +282,54 @@ async function runTests() {
       crypto.createHash('sha256').update(newerAsarBuf).digest('hex'),
       'Bản sao lưu .bak cũ không được làm mới từ app.asar mới!'
     );
-    console.log('  ✓ Tự động làm mới app.asar.original.bak khi AGY App cập nhật phiên bản mới!\n');
+    console.log('  ✓ Tự động làm mới app.asar.original.bak khi AGY App cập nhật phiên bản mới!');
+
+    // Verify Windows process classification & stale pre-patch detection (ignores ELECTRON_RUN_AS_NODE sidecars & IDE)
+    const agyExe = 'C:\\Users\\ASUS\\AppData\\Local\\Programs\\Antigravity\\Antigravity.exe';
+    const sampleProcs = [
+      {
+        pid: 48848,
+        ppid: 60968,
+        exe: agyExe,
+        cmd: `"${agyExe}" --import=file:///C:/Users/ASUS/.gemini/antigravity/lib/node_modules/sidecar/index.js`,
+        createdMs: 1000
+      },
+      {
+        pid: 62008,
+        ppid: 50136,
+        exe: agyExe,
+        cmd: `"${agyExe}" --updated`,
+        createdMs: 5000
+      },
+      {
+        pid: 68344,
+        ppid: 62008,
+        exe: agyExe,
+        cmd: `"${agyExe}" --type=gpu-process`,
+        createdMs: 5100
+      },
+      {
+        pid: 43032,
+        ppid: 62008,
+        exe: agyExe,
+        cmd: `"${agyExe}" --type=renderer`,
+        createdMs: 9000
+      },
+      {
+        pid: 99999,
+        ppid: 1,
+        exe: 'C:\\Users\\ASUS\\AppData\\Local\\Programs\\Antigravity IDE\\Antigravity.exe',
+        cmd: '"C:\\Users\\ASUS\\AppData\\Local\\Programs\\Antigravity IDE\\Antigravity.exe"',
+        createdMs: 2000
+      }
+    ];
+    const classified = classifyAgyProcesses(sampleProcs, agyExe);
+    assert.deepStrictEqual(classified.guiMainPids, [62008], 'Phải chỉ nhận diện đúng GUI Main Process, bỏ qua sidecar và IDE!');
+    assert.deepStrictEqual(classified.chromiumChildPids, [68344, 43032], 'Phải nhận diện đúng các tiến trình con Chromium!');
+    assert.strictEqual(classified.oldestGuiStartMs, 5000, 'Thời điểm khởi động GUI phải lấy của Main Process, không lấy sidecar!');
+    assert.strictEqual(isRunningAgyStale(classified, 8000), true, 'Phải phát hiện AGY đang chạy trước khi patch (stale)!');
+    assert.strictEqual(isRunningAgyStale(classified, 4500), false, 'AGY khởi động sau khi patch không được coi là stale!');
+    console.log('  ✓ Phân loại tiến trình Antigravity GUI và phát hiện tiến trình cũ trước khi patch chính xác!\n');
   } finally {
     for (const d of [tempSandbox, tempMediaA, tempMediaB]) {
       if (fs.existsSync(d)) fs.rmSync(d, { recursive: true, force: true });

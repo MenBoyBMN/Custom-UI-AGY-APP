@@ -7,8 +7,8 @@
 ### Biến Antigravity Desktop App Thành Không Gian Làm Việc Đậm Chất Riêng
 **Giao diện Kính mờ (Glassmorphism) dịu mắt · Hình nền động 60FPS · Nhạc Lo-Fi Offline · Âm thanh phím cơ · Chỉnh trực tiếp ngay trong App**
 
-[![Download Release](https://img.shields.io/badge/Tải_Bản_Mới_Nhất-v2.0.0_(Windows_x64)-0ea5e9?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/MenBoyBMN/Custom-UI-AGY-APP/releases/latest)
-[![Portable](https://img.shields.io/badge/Portable-Không_Cần_Cài_Đặt-34d399?style=for-the-badge)](https://github.com/MenBoyBMN/Custom-UI-AGY-APP/releases/download/v2.0.0/AGY-UI-Studio-v2.0.0-win32-x64.zip)
+[![Download Release](https://img.shields.io/badge/Tải_Bản_Mới_Nhất-v2.1.0_(Windows_x64)-0ea5e9?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/MenBoyBMN/Custom-UI-AGY-APP/releases/latest)
+[![Portable](https://img.shields.io/badge/Portable-Không_Cần_Cài_Đặt-34d399?style=for-the-badge)](https://github.com/MenBoyBMN/Custom-UI-AGY-APP/releases/download/v2.1.0/AGY-UI-Studio-v2.1.0-win32-x64.zip)
 [![License](https://img.shields.io/badge/Miễn_Phí-MIT_License-a78bfa?style=for-the-badge)](LICENSE)
 
 <br />
@@ -100,7 +100,7 @@ Các bảng màu được cân chỉnh độ tương phản chuẩn **Eye-Comfor
 **Không cần cài đặt phức tạp. Không cần Node.js. Tải về là chạy ngay!**
 
 1. Nhấn vào nút tải bản mới nhất bên dưới:
-   > **[Tải AGY UI Studio v2.0.0 Portable (Windows x64 — .zip)](https://github.com/MenBoyBMN/Custom-UI-AGY-APP/releases/download/v2.0.0/AGY-UI-Studio-v2.0.0-win32-x64.zip)**
+   > **[Tải AGY UI Studio v2.1.0 Portable (Windows x64 — .zip)](https://github.com/MenBoyBMN/Custom-UI-AGY-APP/releases/download/v2.1.0/AGY-UI-Studio-v2.1.0-win32-x64.zip)**
 2. Giải nén file `.zip` vừa tải ra một thư mục bất kỳ trên máy.
 3. Mở file **`AGY-UI-Studio.exe`**.
 4. Studio sẽ **tự động tìm thấy Antigravity App** trên máy bạn → Chọn theme bạn thích → Nhấn **`Áp dụng vào AGY`** → Mở Antigravity App và tận hưởng thành quả!

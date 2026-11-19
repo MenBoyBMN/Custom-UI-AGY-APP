@@ -6,7 +6,7 @@ try {
 }
 const path = require('path');
 const crypto = require('crypto');
-const { execSync } = require('child_process');
+const { execSync, execFileSync, spawn } = require('child_process');
 const { MARKER_COMMENT, validateAgyRoot } = require('./agyScanner');
 
 const sleepBuffer = new Int32Array(new SharedArrayBuffer(4));
@@ -320,12 +320,16 @@ ${MARKER_COMMENT}
     } catch (_) {}
 
     let injected = false;
+    let injecting = false;
     const injectIntoMainWorld = async () => {
-      if (injected) return;
-      injected = true;
+      if (injected || injecting) return;
+      injecting = true;
       try {
         const bundle = await bridge.getBundle();
-        if (!bundle || !bundle.ok || !bundle.runtimeCode) return;
+        if (!bundle || !bundle.ok || !bundle.runtimeCode) {
+          injecting = false;
+          return;
+        }
         const initScript =
           bundle.presetsCode +
           '\\n;window.__AGY_INITIAL_CUSTOM_CONFIG__ = ' +
@@ -333,15 +337,24 @@ ${MARKER_COMMENT}
           ';\\n' +
           bundle.runtimeCode;
         await electron_1.webFrame.executeJavaScript(initScript);
+        injected = true;
       } catch (err) {
         console.error('[AGY-UI-Studio Preload Inject Error]', err);
+      } finally {
+        injecting = false;
       }
     };
 
     if (g.document && (g.document.readyState === 'interactive' || g.document.readyState === 'complete')) {
       void injectIntoMainWorld();
-    } else if (g.addEventListener) {
-      g.addEventListener('DOMContentLoaded', () => void injectIntoMainWorld(), { once: true });
+    } else {
+      if (g.document && typeof g.document.addEventListener === 'function') {
+        g.document.addEventListener('DOMContentLoaded', () => void injectIntoMainWorld(), { once: true });
+      }
+      if (typeof g.addEventListener === 'function') {
+        g.addEventListener('DOMContentLoaded', () => void injectIntoMainWorld(), { once: true });
+        g.addEventListener('load', () => void injectIntoMainWorld(), { once: true });
+      }
     }
   } catch (e) {
     console.error('[AGY-UI-Studio Preload Hook Error]', e);
@@ -383,10 +396,170 @@ function copyDirRecursive(srcDir, destDir) {
 }
 
 /**
- * Checks if Antigravity.exe is currently running and optionally closes it so app.asar is not locked.
+ * Pure helper: classifies a list of Windows Antigravity.exe process records
+ * into GUI Main processes vs Chromium child processes while ignoring
+ * ELECTRON_RUN_AS_NODE sidecar helpers (e.g. `--import=...`) and other installs (like Antigravity IDE).
+ */
+function classifyAgyProcesses(records, exePath = null) {
+  const targetExe = exePath ? path.resolve(String(exePath)).toLowerCase() : null;
+  const matched = [];
+  for (const rec of Array.isArray(records) ? records : []) {
+    if (!rec || typeof rec !== 'object') continue;
+    const pid = Number(rec.pid);
+    const ppid = Number(rec.ppid);
+    if (!Number.isFinite(pid) || pid <= 0) continue;
+    const recExe = rec.exe ? path.resolve(String(rec.exe)).toLowerCase() : '';
+    if (targetExe) {
+      if (!recExe || recExe !== targetExe) continue;
+    } else if (recExe.includes('antigravity ide')) {
+      continue;
+    }
+    matched.push({
+      pid,
+      ppid: Number.isFinite(ppid) ? ppid : 0,
+      exe: recExe,
+      cmd: String(rec.cmd || ''),
+      createdMs: Number(rec.createdMs) || 0
+    });
+  }
+
+  const chromiumChildren = [];
+  const chromiumParentPids = new Set();
+  for (const p of matched) {
+    if (/(?:^|\s)--type=/i.test(p.cmd)) {
+      chromiumChildren.push(p);
+      if (p.ppid > 0) chromiumParentPids.add(p.ppid);
+    }
+  }
+
+  const guiMainProcs = [];
+  for (const p of matched) {
+    const isChromiumChild = /(?:^|\s)--type=/i.test(p.cmd);
+    if (isChromiumChild) continue;
+    const isRunAsNodeHelper =
+      /(?:^|\s)(?:--import=|--eval\b|-e\b)/i.test(p.cmd) ||
+      /(?:\\|\/)node_modules(?:\\|\/)/i.test(p.cmd);
+    if (chromiumParentPids.has(p.pid) || !isRunAsNodeHelper) {
+      guiMainProcs.push(p);
+    }
+  }
+
+  const guiMainPids = guiMainProcs.map((p) => p.pid);
+  const chromiumChildPids = chromiumChildren.map((p) => p.pid);
+  const startCandidates = (guiMainProcs.length > 0 ? guiMainProcs : chromiumChildren)
+    .map((p) => p.createdMs)
+    .filter((ms) => ms > 0);
+  const oldestGuiStartMs = startCandidates.length > 0 ? Math.min(...startCandidates) : 0;
+
+  return {
+    isRunning: guiMainPids.length > 0 || chromiumChildPids.length > 0,
+    guiMainPids,
+    chromiumChildPids,
+    oldestGuiStartMs
+  };
+}
+
+/**
+ * Determines whether a running Antigravity GUI instance started BEFORE `asarMtimeMs`,
+ * meaning its Main Process still has the old pre-patch `app.asar` loaded in memory.
+ */
+function isRunningAgyStale(runningInfo, asarMtimeMs) {
+  if (!runningInfo || !runningInfo.isRunning) return false;
+  if (!runningInfo.oldestGuiStartMs || !asarMtimeMs) return false;
+  return runningInfo.oldestGuiStartMs < asarMtimeMs - 1000;
+}
+
+/**
+ * Inspects running Antigravity.exe GUI processes on Windows for a given `exePath`.
+ */
+function getRunningAgyGuiInfo(exePath = null) {
+  const empty = { isRunning: false, guiMainPids: [], chromiumChildPids: [], oldestGuiStartMs: 0 };
+  if (process.platform !== 'win32') return empty;
+  try {
+    const psCmd = [
+      "$procs = @(Get-CimInstance Win32_Process -Filter \"Name='Antigravity.exe'\" -ErrorAction SilentlyContinue | ForEach-Object {",
+      "  $ms = 0;",
+      "  if ($_.CreationDate) { try { $ms = ([DateTimeOffset]$_.CreationDate).ToUnixTimeMilliseconds() } catch {} }",
+      "  [PSCustomObject]@{ pid = [int]$_.ProcessId; ppid = [int]$_.ParentProcessId; exe = [string]$_.ExecutablePath; cmd = [string]$_.CommandLine; createdMs = [int64]$ms }",
+      "});",
+      "ConvertTo-Json -InputObject $procs -Compress"
+    ].join(' ');
+    const out = execFileSync(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', psCmd],
+      { encoding: 'utf8', timeout: 4500, stdio: ['ignore', 'pipe', 'ignore'] }
+    );
+    const trimmed = String(out || '').trim();
+    if (!trimmed) return empty;
+    const parsed = JSON.parse(trimmed);
+    const list = Array.isArray(parsed) ? parsed : [parsed];
+    return classifyAgyProcesses(list, exePath);
+  } catch (_) {
+    // Fallback to tasklist only when no specific non-real test exePath is targeted
+    if (exePath && !fs.existsSync(exePath)) return empty;
+    try {
+      const out = execSync('tasklist /FI "IMAGENAME eq Antigravity.exe" /NH', {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      });
+      const isRunning = Boolean(out && out.toLowerCase().includes('antigravity.exe'));
+      return { ...empty, isRunning };
+    } catch (__) {
+      return empty;
+    }
+  }
+}
+
+/**
+ * Closes running Antigravity.exe GUI processes (main + renderer/gpu/utility tree)
+ * cleanly for the targeted installation so `app.asar` can be written and reloaded fresh.
+ */
+function stopRunningAgyGui(exePath = null, preFetchedInfo = null) {
+  if (process.platform !== 'win32') return { wasRunning: false, closed: false };
+  const info = preFetchedInfo || getRunningAgyGuiInfo(exePath);
+  if (!info.isRunning) return { wasRunning: false, closed: false };
+
+  const pidsToKillTree = [...info.guiMainPids];
+  const pidsToKillSingle = [...info.chromiumChildPids];
+
+  if (pidsToKillTree.length > 0 || pidsToKillSingle.length > 0) {
+    for (const pid of pidsToKillTree) {
+      try {
+        execFileSync('taskkill.exe', ['/F', '/T', '/PID', String(pid)], {
+          stdio: 'ignore',
+          timeout: 4000
+        });
+      } catch (_) {}
+    }
+    for (const pid of pidsToKillSingle) {
+      try {
+        execFileSync('taskkill.exe', ['/F', '/PID', String(pid)], {
+          stdio: 'ignore',
+          timeout: 3000
+        });
+      } catch (_) {}
+    }
+  } else {
+    try {
+      execSync('taskkill /F /IM Antigravity.exe', { stdio: 'ignore' });
+    } catch (_) {}
+  }
+
+  for (let attempt = 0; attempt < 14; attempt++) {
+    sleepSyncMs(250);
+    const check = getRunningAgyGuiInfo(exePath);
+    if (!check.isRunning) {
+      return { wasRunning: true, closed: true };
+    }
+  }
+  return { wasRunning: true, closed: true };
+}
+
+/**
+ * Legacy fallback kill if Windows still holds a file lock on app.asar after targeted GUI shutdown.
  */
 function ensureAgyNotLockingAsar(autoClose = false) {
-  if (process.platform !== 'win32') return { wasRunning: false };
+  if (process.platform !== 'win32') return { wasRunning: false, closed: false };
   try {
     const out = execSync('tasklist /FI "IMAGENAME eq Antigravity.exe" /NH', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
     const isRunning = out && out.toLowerCase().includes('antigravity.exe');
@@ -400,29 +573,97 @@ function ensureAgyNotLockingAsar(autoClose = false) {
   }
 }
 
+function relaunchAgyApp(exePath) {
+  if (!exePath || !fs.existsSync(exePath)) return false;
+  try {
+    const child = spawn(exePath, [], {
+      cwd: path.dirname(exePath),
+      detached: true,
+      stdio: 'ignore'
+    });
+    child.unref();
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 /**
- * Writes a buffer to `asarPath` safely on Windows even when `app.asar` is mapped by a running process,
- * using `original-fs`, `process.noAsar = true`, retry loop, and automatic restart of Antigravity.exe if locked.
+ * Writes a buffer to `asarPath` safely on Windows using `original-fs` and `process.noAsar = true`.
+ * Crucially, if `app.asar` actually changes while Antigravity GUI is running (e.g. right after an AGY update),
+ * we proactively close Antigravity GUI BEFORE writing and relaunch it afterward — because on Windows
+ * `fs.writeFileSync` often succeeds without throwing EBUSY while leaving the running Main Process
+ * stuck on the old unpatched `dist/utils.js` and stale in-memory ASAR header cache!
+ * Likewise, if `app.asar` on disk already matches `dataBuffer` but the running Antigravity GUI started
+ * BEFORE `app.asar` was patched, we automatically restart that stale instance.
  */
 function writeAsarSafely(asarPath, dataBuffer, options = {}) {
-  const { autoRestartAgy = true, exePath = null } = options;
+  const { autoRestartAgy = true, exePath = null, forceRestartIfRunning = false } = options;
   const prevNoAsar = process.noAsar;
   process.noAsar = true;
   try {
-    // If app.asar on disk is already byte-for-byte identical to dataBuffer, skip writing
-    // so we never disturb a running Antigravity.exe instance!
+    let existingIdentical = false;
+    let existingMtimeMs = 0;
     if (fs.existsSync(asarPath)) {
       try {
+        existingMtimeMs = fs.statSync(asarPath).mtimeMs;
         const existingBuf = fs.readFileSync(asarPath);
         if (existingBuf.length === dataBuffer.length && Buffer.compare(existingBuf, dataBuffer) === 0) {
-          return { method: 'hot-sync-resources', restartedAgy: false };
+          existingIdentical = true;
         }
       } catch (_) {}
     }
 
+    const runningInfo = autoRestartAgy ? getRunningAgyGuiInfo(exePath) : { isRunning: false, oldestGuiStartMs: 0 };
+
+    // Case 1: app.asar on disk is already byte-for-byte identical to dataBuffer
+    if (existingIdentical) {
+      if (
+        autoRestartAgy &&
+        runningInfo.isRunning &&
+        (forceRestartIfRunning || isRunningAgyStale(runningInfo, existingMtimeMs))
+      ) {
+        stopRunningAgyGui(exePath, runningInfo);
+        sleepSyncMs(250);
+        const relaunched = relaunchAgyApp(exePath);
+        return { method: 'restart-stale-agy', restartedAgy: relaunched, needsRestart: !relaunched };
+      }
+      return { method: 'hot-sync-resources', restartedAgy: false, needsRestart: false };
+    }
+
+    // Case 2: app.asar must be updated on disk AND Antigravity GUI is currently running -> stop FIRST, write, then relaunch!
+    const writeWithRetries = (allowForceFallback) => {
+      let lastErr = null;
+      for (let attempt = 0; attempt < 12; attempt++) {
+        try {
+          fs.writeFileSync(asarPath, dataBuffer);
+          return true;
+        } catch (retryErr) {
+          lastErr = retryErr;
+          if (allowForceFallback && attempt === 4) {
+            ensureAgyNotLockingAsar(true);
+          }
+          sleepSyncMs(350);
+        }
+      }
+      throw lastErr;
+    };
+
+    if (runningInfo.isRunning && autoRestartAgy) {
+      stopRunningAgyGui(exePath, runningInfo);
+      writeWithRetries(true);
+      const relaunched = relaunchAgyApp(exePath);
+      return { method: 'restart-and-write', restartedAgy: relaunched, needsRestart: !relaunched };
+    }
+
+    // Case 3: Antigravity GUI is not running (or autoRestartAgy is false) -> write directly, with lock fallback
     try {
       fs.writeFileSync(asarPath, dataBuffer);
-      return { method: 'direct', restartedAgy: false };
+      return {
+        method: 'direct',
+        restartedAgy: false,
+        needsRestart: Boolean(runningInfo.isRunning && !autoRestartAgy)
+      };
     } catch (directErr) {
       const isLockError =
         directErr &&
@@ -436,42 +677,10 @@ function writeAsarSafely(asarPath, dataBuffer, options = {}) {
         throw directErr;
       }
 
-      // Close running Antigravity.exe so Windows releases the read lock on resources/app.asar
       const procInfo = ensureAgyNotLockingAsar(true);
-      let written = false;
-      let lastErr = directErr;
-
-      for (let attempt = 0; attempt < 12; attempt++) {
-        sleepSyncMs(350);
-        try {
-          fs.writeFileSync(asarPath, dataBuffer);
-          written = true;
-          break;
-        } catch (retryErr) {
-          lastErr = retryErr;
-        }
-      }
-
-      if (!written) {
-        throw lastErr;
-      }
-
-      // Automatically relaunch Antigravity.exe if it was running before we closed it
-      let relaunched = false;
-      if (procInfo.wasRunning && exePath && fs.existsSync(exePath)) {
-        try {
-          const { spawn } = require('child_process');
-          const child = spawn(exePath, [], {
-            cwd: path.dirname(exePath),
-            detached: true,
-            stdio: 'ignore'
-          });
-          child.unref();
-          relaunched = true;
-        } catch (_) {}
-      }
-
-      return { method: 'restart-and-write', restartedAgy: relaunched };
+      writeWithRetries(false);
+      const relaunched = procInfo.wasRunning ? relaunchAgyApp(exePath) : false;
+      return { method: 'restart-and-write', restartedAgy: relaunched, needsRestart: !relaunched };
     }
   } finally {
     process.noAsar = prevNoAsar;
@@ -580,14 +789,28 @@ function applyCustomizationToAgy({ agyRootPath, config, studioRootDir, autoClose
 
     // Write config.json, presets.js, and agyInjectorRuntime.js into resources/agy-custom-ui/
     fs.writeFileSync(path.join(customUiDir, 'config.json'), JSON.stringify(cfgClone, null, 2), 'utf8');
-    fs.copyFileSync(
-      path.join(studioRootDir, 'src', 'renderer', 'presets.js'),
-      path.join(customUiDir, 'presets.js')
-    );
-    fs.copyFileSync(
-      path.join(studioRootDir, 'src', 'injected', 'agyInjectorRuntime.js'),
-      path.join(customUiDir, 'agyInjectorRuntime.js')
-    );
+    const srcPresetsPath = path.join(studioRootDir, 'src', 'renderer', 'presets.js');
+    const destPresetsPath = path.join(customUiDir, 'presets.js');
+    const srcRuntimePath = path.join(studioRootDir, 'src', 'injected', 'agyInjectorRuntime.js');
+    const destRuntimePath = path.join(customUiDir, 'agyInjectorRuntime.js');
+
+    let runtimeScriptChanged = false;
+    try {
+      const nextRuntimeBuf = fs.readFileSync(srcRuntimePath);
+      const nextPresetsBuf = fs.readFileSync(srcPresetsPath);
+      const prevRuntimeBuf = fs.existsSync(destRuntimePath) ? fs.readFileSync(destRuntimePath) : null;
+      const prevPresetsBuf = fs.existsSync(destPresetsPath) ? fs.readFileSync(destPresetsPath) : null;
+      runtimeScriptChanged =
+        !prevRuntimeBuf ||
+        !prevPresetsBuf ||
+        Buffer.compare(prevRuntimeBuf, nextRuntimeBuf) !== 0 ||
+        Buffer.compare(prevPresetsBuf, nextPresetsBuf) !== 0;
+    } catch (_) {
+      runtimeScriptChanged = true;
+    }
+
+    fs.copyFileSync(srcPresetsPath, destPresetsPath);
+    fs.copyFileSync(srcRuntimePath, destRuntimePath);
 
     function stripExistingHook(code) {
       const idx = String(code || '').indexOf(MARKER_COMMENT);
@@ -608,19 +831,22 @@ function applyCustomizationToAgy({ agyRootPath, config, studioRootDir, autoClose
     });
 
     // 4. Write patched app.asar using original-fs.
-    //    If app.asar on disk already matches rebuiltBuffer (already patched), writeAsarSafely returns 'hot-sync-resources' without touching app.asar!
-    let writeInfo = { method: 'hot-sync-resources', restartedAgy: false };
+    //    - If app.asar on disk already matches rebuiltBuffer and AGY started AFTER the patch: hot-sync-resources (no restart).
+    //    - If app.asar matches rebuiltBuffer but AGY started BEFORE the patch (stale process): restarts AGY automatically.
+    //    - If app.asar changed (fresh AGY update or hook upgrade): stops AGY first, writes cleanly, and relaunches AGY.
+    let writeInfo = { method: 'hot-sync-resources', restartedAgy: false, needsRestart: false };
     try {
       writeInfo = writeAsarSafely(asarPath, rebuiltBuffer, {
-        autoRestartAgy: autoCloseRunningAgy && !validation.isPatched,
-        exePath
+        autoRestartAgy: autoCloseRunningAgy,
+        exePath,
+        forceRestartIfRunning: runtimeScriptChanged
       });
     } catch (asarWriteErr) {
       if (!validation.isPatched) {
         throw asarWriteErr;
       }
       // app.asar is already patched with our IPC & preload hooks; updating resources/agy-custom-ui/ is sufficient!
-      writeInfo = { method: 'hot-sync-resources', restartedAgy: false };
+      writeInfo = { method: 'hot-sync-resources', restartedAgy: false, needsRestart: false };
     }
 
     return {
@@ -630,6 +856,7 @@ function applyCustomizationToAgy({ agyRootPath, config, studioRootDir, autoClose
       customUiDir,
       writeMethod: writeInfo.method,
       restartedAgy: writeInfo.restartedAgy,
+      needsRestart: Boolean(writeInfo.needsRestart),
       message: 'Đã nạp giao diện Custom vào Antigravity App thành công!'
     };
   } finally {
@@ -694,9 +921,10 @@ function restoreOriginalAgy({ agyRootPath, autoCloseRunningAgy = true }) {
       };
     }
 
+    let writeInfo = { method: 'already-original', restartedAgy: false };
     if (currentState.hasMarker) {
       const backupBytes = fs.readFileSync(backupPath);
-      writeAsarSafely(asarPath, backupBytes, {
+      writeInfo = writeAsarSafely(asarPath, backupBytes, {
         autoRestartAgy: autoCloseRunningAgy,
         exePath
       });
@@ -710,6 +938,8 @@ function restoreOriginalAgy({ agyRootPath, autoCloseRunningAgy = true }) {
     return {
       ok: true,
       restoredPath: asarPath,
+      writeMethod: writeInfo.method,
+      restartedAgy: Boolean(writeInfo.restartedAgy),
       message: 'Đã khôi phục Antigravity App về trạng thái nguyên gốc 100%!'
     };
   } finally {
@@ -722,6 +952,11 @@ module.exports = {
   readAsarArchive,
   rebuildAsarArchive,
   readAsarFileUtf8,
+  classifyAgyProcesses,
+  isRunningAgyStale,
+  getRunningAgyGuiInfo,
+  stopRunningAgyGui,
+  relaunchAgyApp,
   applyCustomizationToAgy,
   restoreOriginalAgy
 };

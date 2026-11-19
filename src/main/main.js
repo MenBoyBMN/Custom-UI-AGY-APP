@@ -3,7 +3,13 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const { validateAgyRoot, autoScanAgyRoot } = require('./agyScanner');
-const { applyCustomizationToAgy, restoreOriginalAgy } = require('./asarPatcher');
+const {
+  applyCustomizationToAgy,
+  restoreOriginalAgy,
+  getRunningAgyGuiInfo,
+  isRunningAgyStale,
+  stopRunningAgyGui
+} = require('./asarPatcher');
 const { DEFAULT_CONFIG } = require('../renderer/presets');
 
 const STUDIO_ROOT_DIR = path.resolve(__dirname, '..', '..');
@@ -325,13 +331,22 @@ function registerIpcHandlers() {
       if (!validation.valid || !validation.exePath) {
         return { ok: false, error: 'Không tìm thấy file thực thi Antigravity.exe trong thư mục gốc!' };
       }
+      let restartedStale = false;
+      try {
+        const asarMtimeMs = fs.existsSync(validation.asarPath) ? fs.statSync(validation.asarPath).mtimeMs : 0;
+        const runningInfo = getRunningAgyGuiInfo(validation.exePath);
+        if (isRunningAgyStale(runningInfo, asarMtimeMs)) {
+          stopRunningAgyGui(validation.exePath, runningInfo);
+          restartedStale = true;
+        }
+      } catch (_) {}
       const child = spawn(validation.exePath, [], {
         cwd: validation.path,
         detached: true,
         stdio: 'ignore'
       });
       child.unref();
-      return { ok: true };
+      return { ok: true, restartedStale };
     } catch (err) {
       return { ok: false, error: String(err && err.message ? err.message : err) };
     }

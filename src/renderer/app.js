@@ -1277,7 +1277,15 @@
       });
       if (res && res.ok) {
         if (res.status) updateAgyStatusUI(res.status);
-        showToast('🎉 Đã nạp giao diện Custom vào AGY App thành công! Mở AGY App để trải nghiệm ngay!');
+        if (res.restartedAgy) {
+          showToast('🎉 Đã nạp Theme và tự động khởi động lại Antigravity App để áp dụng ngay!');
+        } else if (res.writeMethod === 'hot-sync-resources') {
+          showToast('⚡ Đã đồng bộ cấu hình Theme mới vào Antigravity App!');
+        } else if (res.needsRestart) {
+          showToast('🎉 Đã nạp Theme! Hãy thoát hẳn AGY App (kể cả khay hệ thống) và mở lại.');
+        } else {
+          showToast('🎉 Đã nạp giao diện Custom vào AGY App thành công! Mở AGY App để trải nghiệm ngay!');
+        }
       } else {
         showToast(res?.error || 'Có lỗi xảy ra khi Apply!', true);
       }
@@ -1312,7 +1320,11 @@
     }
     const res = await window.studioAPI.launchAgy(state.agyStatus.path);
     if (res && res.ok) {
-      showToast('🚀 Đang khởi chạy Antigravity App...');
+      showToast(
+        res.restartedStale
+          ? '🔄 Đã khởi động lại Antigravity App để nạp giao diện mới!'
+          : '🚀 Đang khởi chạy Antigravity App...'
+      );
     } else {
       showToast(res?.error || 'Không thể mở Antigravity.exe!', true);
     }

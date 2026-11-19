@@ -1726,19 +1726,19 @@
         pointer-events: none !important;
       }
 
-      /* 3. Top Menu Bar & Header Bar ("Thanh trên cùng") */
+      /* 3. Top Menu Bar & Header Bar ("Thanh trên cùng")
+         Avoid backdrop-filter on header bars so they never create a fixed containing-block
+         or stacking-context trap for header dropdown menus (e.g. 3-dot More menu, Title menus). */
       [data-testid="title-menu-bar"],
       .agy-shell > .shrink-0:first-of-type {
-        background: rgba(${sidebarRgb}, ${Math.min(0.92, opacity + 0.08)}) !important;
-        backdrop-filter: blur(${blur}px) saturate(135%) !important;
-        -webkit-backdrop-filter: blur(${blur}px) saturate(135%) !important;
+        background: rgba(${sidebarRgb}, ${Math.min(0.94, opacity + 0.1)}) !important;
         border-bottom: 1px solid rgba(${borderRgb}, 0.42) !important;
         color: ${c.foreground || '#f8fafc'} !important;
       }
       [data-testid="title-menu-bar"] button {
         color: rgba(${fgRgb}, 0.85) !important;
         border-radius: 6px !important;
-        transition: all 0.15s ease !important;
+        transition: background-color 0.15s ease, color 0.15s ease !important;
       }
       [data-testid="title-menu-bar"] button:hover {
         background: rgba(${primaryRgb}, 0.14) !important;
@@ -1782,9 +1782,7 @@
       }
       [data-main-content-header],
       [data-testid="pane-titlebar-toolbar"] {
-        background: rgba(${sidebarRgb}, ${Math.min(0.55, opacity * 0.65)}) !important;
-        backdrop-filter: blur(${Math.round(blur * 0.7)}px) !important;
-        -webkit-backdrop-filter: blur(${Math.round(blur * 0.7)}px) !important;
+        background: rgba(${sidebarRgb}, ${Math.min(0.68, opacity * 0.78)}) !important;
         border-bottom: 1px solid rgba(${borderRgb}, 0.35) !important;
       }
 
@@ -1981,13 +1979,52 @@
         border-radius: ${radius}px !important;
       }
 
-      /* Dropdowns, Menus, Modals & Popovers */
-      .surface-glass, .surface-opaque:not([role="dialog"]),
-      .agy-overlay, .agy-dialog, [role="menu"], [role="listbox"], [data-select-popup] {
-        background: rgba(${cardRgb}, 0.95) !important;
-        backdrop-filter: blur(24px) saturate(140%) !important;
-        -webkit-backdrop-filter: blur(24px) saturate(140%) !important;
+      /* Dropdowns, Menus & Popovers */
+      .surface-glass, .surface-opaque:not([role="dialog"]):not([role="dialog"] *),
+      [role="menu"], [role="listbox"], [data-select-popup] {
+        background: rgba(${cardRgb}, ${Math.min(0.95, opacity + 0.16)}) !important;
+        backdrop-filter: blur(${Math.max(12, blur)}px) saturate(140%) !important;
+        -webkit-backdrop-filter: blur(${Math.max(12, blur)}px) saturate(140%) !important;
         border-color: rgba(${borderRgb}, 0.52) !important;
+      }
+
+      /* Settings & App Dialog Modals (Follows Glass Panel Opacity & Blur Sliders) */
+      [role="dialog"]:not(.agy-inapp-drawer),
+      .agy-dialog:not(.agy-inapp-drawer) {
+        background: rgba(${cardRgb}, ${opacity}) !important;
+        backdrop-filter: blur(${blur}px) saturate(140%) !important;
+        -webkit-backdrop-filter: blur(${blur}px) saturate(140%) !important;
+        border: 1px solid rgba(${borderRgb}, 0.52) !important;
+        border-radius: ${Math.max(12, radius)}px !important;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+        --background: transparent !important;
+        --color-background: transparent !important;
+        --content: transparent !important;
+        --shell: transparent !important;
+        --shell-canvas: transparent !important;
+        --sidebar: rgba(${sidebarRgb}, ${Math.min(0.5, opacity * 0.55)}) !important;
+        --color-sidebar: rgba(${sidebarRgb}, ${Math.min(0.5, opacity * 0.55)}) !important;
+        --sidebar-background: rgba(${sidebarRgb}, ${Math.min(0.5, opacity * 0.55)}) !important;
+        --card: rgba(${cardRgb}, ${Math.min(0.45, opacity * 0.5)}) !important;
+        --color-card: rgba(${cardRgb}, ${Math.min(0.45, opacity * 0.5)}) !important;
+        --onyx-frame: rgba(${sidebarRgb}, ${Math.min(0.48, opacity * 0.52)}) !important;
+        --onyx-well: rgba(${sidebarRgb}, ${Math.min(0.42, opacity * 0.45)}) !important;
+        --onyx-raised: rgba(${cardRgb}, ${Math.min(0.55, opacity * 0.62)}) !important;
+      }
+      [role="dialog"]:not(.agy-inapp-drawer) .surface-opaque,
+      .agy-dialog:not(.agy-inapp-drawer) .surface-opaque {
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+      [role="dialog"]:not(.agy-inapp-drawer) aside,
+      [role="dialog"]:not(.agy-inapp-drawer) nav,
+      [role="dialog"]:not(.agy-inapp-drawer) [role="navigation"],
+      .agy-dialog:not(.agy-inapp-drawer) aside,
+      .agy-dialog:not(.agy-inapp-drawer) nav,
+      .agy-dialog:not(.agy-inapp-drawer) [role="navigation"] {
+        background: rgba(${sidebarRgb}, ${Math.min(0.52, opacity * 0.6)}) !important;
+        border-right-color: rgba(${borderRgb}, 0.36) !important;
       }
 
       /* Chat Width & Prompt Box Styling */
@@ -2248,7 +2285,7 @@
       flex-shrink: 0;
       white-space: nowrap;
       line-height: 1;
-      backdrop-filter: blur(12px);
+      backdrop-filter: none;
     }
     .agy-floating-studio-btn.agy-in-header.agy-needs-gap {
       margin-right: 6px;
@@ -2700,6 +2737,24 @@
   `;
 
   let isMountingStudioBtn = false;
+  let mountedHeaderParent = null;
+  let mountedHeaderAnchor = null;
+  let isPointerPressed = false;
+
+  const POPUP_OR_GUARD_SELECTOR =
+    '[role="menu"], [role="listbox"], [role="dialog"], [role="tooltip"], [data-select-popup], [data-radix-popper-content-wrapper], [data-base-ui-portal], [data-floating-ui-portal], [data-radix-focus-guard], [data-base-ui-focus-guard], [data-floating-ui-focus-guard]';
+
+  function hasActivePopupOrMenu() {
+    try {
+      return Boolean(
+        document.querySelector(
+          '[role="menu"], [role="listbox"], [data-select-popup], [data-radix-popper-content-wrapper], [data-popup-open], [aria-expanded="true"][aria-haspopup]'
+        )
+      );
+    } catch (_) {
+      return false;
+    }
+  }
 
   function isVisibleElement(el) {
     if (!el || !el.isConnected) return false;
@@ -2713,7 +2768,8 @@
       if (
         prev === floatingBtn ||
         prev.classList?.contains('agy-floating-studio-btn') ||
-        prev.matches?.('[data-testid="right-cluster-fade"]')
+        prev.matches?.('[data-testid="right-cluster-fade"]') ||
+        prev.matches?.(POPUP_OR_GUARD_SELECTOR)
       ) {
         prev = prev.previousElementSibling;
         continue;
@@ -2732,17 +2788,51 @@
   }
 
   function syncStudioButtonDisplay() {
-    if (currentConfig.layout?.showInAppButton === false) {
-      floatingBtn.style.display = 'none';
-    } else {
-      floatingBtn.style.display = floatingBtn.classList.contains('agy-in-header')
-        ? 'inline-flex'
-        : 'flex';
+    const desired =
+      currentConfig.layout?.showInAppButton === false
+        ? 'none'
+        : floatingBtn.classList.contains('agy-in-header')
+          ? 'inline-flex'
+          : 'flex';
+    if (floatingBtn.style.display !== desired) {
+      floatingBtn.style.display = desired;
     }
   }
 
   function mountStudioButtonInHeader() {
     if (isMountingStudioBtn) return;
+
+    // Never mutate or reflow the header while the user is pressing the mouse
+    // or while a dropdown menu / popover is open (prevents closing Radix/Base-UI triggers).
+    if (
+      floatingBtn.isConnected &&
+      floatingBtn.classList.contains('agy-in-header') &&
+      (isPointerPressed || hasActivePopupOrMenu())
+    ) {
+      return;
+    }
+
+    // Fast path: button is already mounted in the exact right header parent right before its anchor.
+    if (
+      floatingBtn.isConnected &&
+      floatingBtn.classList.contains('agy-in-header') &&
+      mountedHeaderParent &&
+      mountedHeaderParent.isConnected &&
+      floatingBtn.parentElement === mountedHeaderParent &&
+      mountedHeaderAnchor &&
+      mountedHeaderAnchor.isConnected &&
+      mountedHeaderAnchor.parentElement === mountedHeaderParent
+    ) {
+      let nextSib = floatingBtn.nextElementSibling;
+      while (nextSib && nextSib.matches?.('[data-testid="right-cluster-fade"]')) {
+        nextSib = nextSib.nextElementSibling;
+      }
+      if (nextSib === mountedHeaderAnchor) {
+        syncStudioButtonDisplay();
+        return;
+      }
+    }
+
     isMountingStudioBtn = true;
     try {
       const openEditorCandidates = Array.from(
@@ -2752,6 +2842,8 @@
         openEditorCandidates.find(isVisibleElement) || openEditorCandidates[0] || null;
 
       if (!openEditorBtn) {
+        mountedHeaderParent = null;
+        mountedHeaderAnchor = null;
         floatingBtn.classList.remove('agy-in-header', 'agy-needs-gap');
         if (floatingBtn.parentElement !== document.body && document.body) {
           document.body.appendChild(floatingBtn);
@@ -2803,6 +2895,8 @@
       if (floatingBtn.parentElement !== targetParent || immediatePrev !== floatingBtn) {
         targetParent.insertBefore(floatingBtn, insertBeforeEl);
       }
+      mountedHeaderParent = targetParent;
+      mountedHeaderAnchor = insertBeforeEl;
       syncStudioButtonDisplay();
     } finally {
       isMountingStudioBtn = false;
@@ -3730,21 +3824,27 @@
     return fallback;
   }
 
-  function syncNativeWindowChrome(cfg) {
+  let lastTitleBarOverlayKey = '';
+
+  function syncNativeWindowChrome(cfg, force = false) {
     try {
       if (window.electronNative && typeof window.electronNative.setTitleBarOverlay === 'function') {
-        if (cfg && cfg.enabled) {
-          const c = cfg.colors || {};
-          window.electronNative.setTitleBarOverlay({
-            color: normalizeHex6(c.sidebar || c.background, '#0e071c'),
-            symbolColor: normalizeHex6(c.foreground, '#f8fafc')
-          });
-        } else {
-          window.electronNative.setTitleBarOverlay({
-            color: '#111114',
-            symbolColor: '#ffffff'
-          });
+        const nextOpts =
+          cfg && cfg.enabled
+            ? {
+                color: normalizeHex6((cfg.colors || {}).sidebar || (cfg.colors || {}).background, '#0e071c'),
+                symbolColor: normalizeHex6((cfg.colors || {}).foreground, '#f8fafc')
+              }
+            : {
+                color: '#111114',
+                symbolColor: '#ffffff'
+              };
+        const nextKey = `${nextOpts.color}|${nextOpts.symbolColor}`;
+        if (!force && nextKey === lastTitleBarOverlayKey) {
+          return;
         }
+        lastTitleBarOverlayKey = nextKey;
+        window.electronNative.setTitleBarOverlay(nextOpts);
       }
     } catch (_) {}
   }
@@ -3912,29 +4012,44 @@
     void musicController.loadAndSync(currentConfig, false);
   }
 
-  // Re-sync native titleBarOverlay and style order after Antigravity's main.js finishes async boot,
+  // Track active pointer presses passively so DOM observers never mutate the header mid-click
+  window.addEventListener(
+    'pointerdown',
+    () => {
+      isPointerPressed = true;
+    },
+    { capture: true, passive: true }
+  );
+  const clearPointerPressed = () => {
+    isPointerPressed = false;
+  };
+  window.addEventListener('pointerup', clearPointerPressed, { capture: true, passive: true });
+  window.addEventListener('pointercancel', clearPointerPressed, { capture: true, passive: true });
+  window.addEventListener('blur', clearPointerPressed, { passive: true });
+
+  // Re-sync native titleBarOverlay only when Antigravity's theme attributes change (never on html[style] scroll-locks!),
   // and keep the AGY Studio button anchored next to the 3-dot menu beside Open IDE across React route updates.
   if (typeof MutationObserver !== 'undefined') {
     let syncTimer = null;
     const bootObserver = new MutationObserver(() => {
       if (syncTimer) clearTimeout(syncTimer);
       syncTimer = setTimeout(() => {
-        if (currentConfig && currentConfig.enabled) {
-          syncNativeWindowChrome(currentConfig);
+        if (currentConfig && currentConfig.enabled && !hasActivePopupOrMenu()) {
+          syncNativeWindowChrome(currentConfig, true);
           visualEngine.resize();
         }
-      }, 180);
+      }, 220);
     });
     if (document.documentElement) {
       bootObserver.observe(document.documentElement, {
         attributes: true,
-        attributeFilter: ['style', 'class', 'data-theme']
+        attributeFilter: ['data-theme']
       });
     }
     if (document.body) {
       bootObserver.observe(document.body, {
         attributes: true,
-        attributeFilter: ['class', 'data-agy-theme', 'data-newux-theme']
+        attributeFilter: ['data-agy-theme', 'data-newux-theme']
       });
     }
 
@@ -3942,10 +4057,11 @@
     let lastChatFrameSyncAt = 0;
     let chatFrameTimer = null;
     const scheduleHeaderMount = () => {
-      if (mountScheduled) return;
+      if (mountScheduled || isPointerPressed) return;
       mountScheduled = true;
       const run = () => {
         mountScheduled = false;
+        if (isPointerPressed) return;
         mountStudioButtonInHeader();
         visualEngine.syncBrowserHoleMask();
         const now = performance.now();
@@ -3955,6 +4071,7 @@
         } else if (!chatFrameTimer) {
           chatFrameTimer = setTimeout(() => {
             chatFrameTimer = null;
+            if (isPointerPressed || hasActivePopupOrMenu()) return;
             lastChatFrameSyncAt = performance.now();
             syncChatFrameTargets(currentConfig, false);
           }, 280);
@@ -3967,15 +4084,29 @@
       }
     };
 
+    const isPopupOrCustomNode = (node) => {
+      if (!node || node.nodeType !== 1) return false;
+      if (
+        node === floatingBtn ||
+        node.classList?.contains('agy-custom-layers-root') ||
+        node.matches?.(POPUP_OR_GUARD_SELECTOR) ||
+        node.closest?.(`.agy-inapp-drawer-backdrop, .agy-mini-music-widget, .agy-custom-layers-root, ${POPUP_OR_GUARD_SELECTOR}`)
+      ) {
+        return true;
+      }
+      return false;
+    };
+
     const headerObserver = new MutationObserver((mutations) => {
-      if (isMountingStudioBtn) return;
+      if (isMountingStudioBtn || isPointerPressed) return;
       for (const m of mutations) {
         const target = m.target;
-        if (
-          target === floatingBtn ||
-          target?.classList?.contains('agy-custom-layers-root') ||
-          target?.closest?.('.agy-inapp-drawer-backdrop, .agy-mini-music-widget, .agy-custom-layers-root')
-        ) {
+        if (isPopupOrCustomNode(target)) {
+          continue;
+        }
+        // Ignore mutations that only add/remove popups, menus, portals, or focus guards
+        const changedNodes = [...(m.addedNodes || []), ...(m.removedNodes || [])];
+        if (changedNodes.length > 0 && changedNodes.every((n) => n.nodeType !== 1 || isPopupOrCustomNode(n))) {
           continue;
         }
         scheduleHeaderMount();
