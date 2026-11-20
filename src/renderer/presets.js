@@ -409,6 +409,10 @@
     },
     layout: {
       sidebarPosition: 'left',       // 'left' | 'right' | 'floating-autohide'
+      titleBarStyle: 'transparent',  // 'transparent' | 'match-theme' | 'custom'
+      titleBarOpacity: 0,            // 0..1 (0 = 100% transparent, blends into wallpaper)
+      titleBarColor: '#0e071c',      // Custom hex background color when titleBarStyle === 'custom'
+      titleBarSymbolColor: '',       // '' = auto (colors.foreground), or custom hex for — ❐ ✕ icons
       chatWidth: 'wide',             // 'auto' | 'narrow' | 'default' | 'standard' | 'wide' | 'fill' | 'full' | 'custom'
       chatCustomWidth: 920,          // Custom max-width in px (520..1600) when chatWidth === 'custom'
       messageStyle: 'glass-cards',   // 'glass-cards' | 'chat-bubbles' | 'minimal'

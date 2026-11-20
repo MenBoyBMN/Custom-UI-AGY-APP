@@ -1559,6 +1559,7 @@
     const radius = Number(g.borderRadius ?? 14);
     const fontScalePct = clampNum(Number(typo.fontScale || 100), 80, 140);
     const wpActive = Boolean(wp.enabled && wp.sourceType && wp.sourceType !== 'none');
+    const tbSpec = resolveTitleBarSpec(cfg);
 
     // When a wallpaper is active, keep the main content pane crystal-clear (only a light tint)
     // because .agy-wp-layer already applies wallpaper.dimming & wallpaper.blur!
@@ -1731,8 +1732,8 @@
          or stacking-context trap for header dropdown menus (e.g. 3-dot More menu, Title menus). */
       [data-testid="title-menu-bar"],
       .agy-shell > .shrink-0:first-of-type {
-        background: rgba(${sidebarRgb}, ${Math.min(0.94, opacity + 0.1)}) !important;
-        border-bottom: 1px solid rgba(${borderRgb}, 0.42) !important;
+        background: ${tbSpec.cssBackground} !important;
+        border-bottom: 1px solid rgba(${borderRgb}, ${tbSpec.borderAlpha}) !important;
         color: ${c.foreground || '#f8fafc'} !important;
       }
       [data-testid="title-menu-bar"] button {
@@ -1782,8 +1783,8 @@
       }
       [data-main-content-header],
       [data-testid="pane-titlebar-toolbar"] {
-        background: rgba(${sidebarRgb}, ${Math.min(0.68, opacity * 0.78)}) !important;
-        border-bottom: 1px solid rgba(${borderRgb}, 0.35) !important;
+        background: ${tbSpec.cssBackground} !important;
+        border-bottom: 1px solid rgba(${borderRgb}, ${tbSpec.borderAlpha}) !important;
       }
 
       /* 4. Sidebar & Project Frames ("Các khung Project & Sidebar") */
@@ -3513,6 +3514,39 @@
             <input type="checkbox" id="inapp-layout-btn" ${currentConfig.layout.showInAppButton !== false ? 'checked' : ''} />
           </div>
         </div>
+        ${(() => {
+          const tb = resolveTitleBarSpec(currentConfig);
+          const customColor = normalizeHex6(currentConfig.layout.titleBarColor, tb.baseHex);
+          const symbolColor = normalizeHex6(currentConfig.layout.titleBarSymbolColor || currentConfig.colors?.foreground, '#f8fafc');
+          return `
+        <div class="agy-inapp-card">
+          <h4>Thanh Điều Hướng Trên Cùng &amp; 3 Nút Cửa Sổ (— ❐ ✕)</h4>
+          <div class="agy-inapp-hint" style="margin-bottom:8px;">Làm trong suốt khung đen 3 nút cửa sổ để hòa vào hình nền, hoặc tùy chỉnh màu nền &amp; độ mờ riêng.</div>
+          <div class="agy-inapp-row">
+            <span>Chế độ nền thanh trên cùng</span>
+            <select id="inapp-tb-style" style="${selectStyle}">
+              <option value="transparent" ${tb.style === 'transparent' ? 'selected' : ''}>Trong suốt hoàn toàn (Hòa hình nền)</option>
+              <option value="match-theme" ${tb.style === 'match-theme' ? 'selected' : ''}>Đồng bộ màu Theme (Có độ mờ)</option>
+              <option value="custom" ${tb.style === 'custom' ? 'selected' : ''}>Chọn màu nền riêng</option>
+            </select>
+          </div>
+          <div class="agy-inapp-row">
+            <span>Độ mờ nền thanh trên (<span id="inapp-tb-opacity-val">${Math.round(tb.opacity * 100)}</span>%)</span>
+            <input type="range" id="inapp-tb-opacity" min="0" max="1" step="0.02" value="${tb.opacity}" />
+          </div>
+          <div class="agy-inapp-row">
+            <span>Màu nền riêng (Chế độ màu riêng)</span>
+            <input type="color" id="inapp-tb-color" value="${escapeHtml(customColor)}" style="width:42px;height:24px;border:none;background:transparent;cursor:pointer;" />
+          </div>
+          <div class="agy-inapp-row">
+            <span>Màu biểu tượng 3 nút (— ❐ ✕)</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <input type="color" id="inapp-tb-symbol" value="${escapeHtml(symbolColor)}" style="width:42px;height:24px;border:none;background:transparent;cursor:pointer;" />
+              <button type="button" id="inapp-tb-symbol-auto" style="padding:3px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.06);color:#e2e8f0;font-size:11px;cursor:pointer;">Tự động</button>
+            </div>
+          </div>
+        </div>`;
+        })()}
         <div class="agy-inapp-card">
           <h4>Hiệu Ứng Hạt &amp; Con Trỏ Chuột</h4>
           <div class="agy-inapp-row">
@@ -3685,6 +3719,58 @@
         currentConfig.layout.showInAppButton = e.target.checked;
         applyAllCurrentConfig();
       });
+
+      const syncInAppTitleBarUi = () => {
+        const tb = resolveTitleBarSpec(currentConfig);
+        const styleSel = container.querySelector('#inapp-tb-style');
+        if (styleSel) styleSel.value = tb.style;
+        const opRange = container.querySelector('#inapp-tb-opacity');
+        if (opRange) opRange.value = String(tb.opacity);
+        const opLbl = container.querySelector('#inapp-tb-opacity-val');
+        if (opLbl) opLbl.textContent = String(Math.round(tb.opacity * 100));
+        const symInput = container.querySelector('#inapp-tb-symbol');
+        if (symInput) symInput.value = tb.symbolColor;
+      };
+      container.querySelector('#inapp-tb-style')?.addEventListener('change', (e) => {
+        const nextStyle = e.target.value;
+        currentConfig.layout.titleBarStyle = nextStyle;
+        if (nextStyle === 'transparent') {
+          currentConfig.layout.titleBarOpacity = 0;
+        } else if (Number(currentConfig.layout.titleBarOpacity || 0) <= 0.01) {
+          currentConfig.layout.titleBarOpacity = 0.45;
+        }
+        applyAllCurrentConfig();
+        syncInAppTitleBarUi();
+      });
+      container.querySelector('#inapp-tb-opacity')?.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        currentConfig.layout.titleBarOpacity = val;
+        if (val <= 0.004) {
+          currentConfig.layout.titleBarStyle = 'transparent';
+        } else if (currentConfig.layout.titleBarStyle === 'transparent') {
+          currentConfig.layout.titleBarStyle = 'match-theme';
+        }
+        applyAllCurrentConfig();
+        syncInAppTitleBarUi();
+      });
+      container.querySelector('#inapp-tb-color')?.addEventListener('input', (e) => {
+        currentConfig.layout.titleBarColor = e.target.value;
+        currentConfig.layout.titleBarStyle = 'custom';
+        if (Number(currentConfig.layout.titleBarOpacity || 0) <= 0.01) {
+          currentConfig.layout.titleBarOpacity = 0.65;
+        }
+        applyAllCurrentConfig();
+        syncInAppTitleBarUi();
+      });
+      container.querySelector('#inapp-tb-symbol')?.addEventListener('input', (e) => {
+        currentConfig.layout.titleBarSymbolColor = e.target.value;
+        applyAllCurrentConfig();
+      });
+      container.querySelector('#inapp-tb-symbol-auto')?.addEventListener('click', () => {
+        currentConfig.layout.titleBarSymbolColor = '';
+        applyAllCurrentConfig();
+        syncInAppTitleBarUi();
+      });
       container.querySelector('#inapp-typo-scale')?.addEventListener('input', (e) => {
         if (!currentConfig.typography) currentConfig.typography = {};
         currentConfig.typography.fontScale = parseInt(e.target.value, 10);
@@ -3824,16 +3910,65 @@
     return fallback;
   }
 
+  function normalizeHex8(color, alpha = 1, fallback = '#0e071c') {
+    const baseHex = normalizeHex6(color, fallback);
+    const numAlpha = Number(alpha);
+    const clampedAlpha = Number.isFinite(numAlpha) ? Math.max(0, Math.min(1, numAlpha)) : 1;
+    if (clampedAlpha <= 0.004) return '#00000000';
+    if (clampedAlpha >= 0.996) return baseHex;
+    const alphaByte = Math.round(clampedAlpha * 255)
+      .toString(16)
+      .padStart(2, '0');
+    return `${baseHex}${alphaByte}`;
+  }
+
+  function resolveTitleBarSpec(cfg) {
+    const c = (cfg && cfg.colors) || {};
+    const l = (cfg && cfg.layout) || {};
+    const rawStyle = l.titleBarStyle;
+    const style =
+      rawStyle === 'match-theme' || rawStyle === 'custom' || rawStyle === 'transparent'
+        ? rawStyle
+        : 'transparent';
+    const rawOpacity = Number(l.titleBarOpacity);
+    const opacity =
+      style === 'transparent'
+        ? 0
+        : Number.isFinite(rawOpacity)
+          ? Math.max(0, Math.min(1, rawOpacity))
+          : 0.45;
+    const baseHex =
+      style === 'custom'
+        ? normalizeHex6(l.titleBarColor, c.sidebar || c.background || '#0e071c')
+        : normalizeHex6(c.sidebar || c.background, '#0e071c');
+    const symbolColor = normalizeHex6(l.titleBarSymbolColor || c.foreground, '#f8fafc');
+    const overlayColor =
+      style === 'transparent' || opacity <= 0.004 ? '#00000000' : normalizeHex8(baseHex, opacity);
+    const rgb = hexToRgb(baseHex, '14, 7, 28');
+    const cssBackground =
+      style === 'transparent' || opacity <= 0.004 ? 'transparent' : `rgba(${rgb}, ${opacity})`;
+    return {
+      style,
+      opacity,
+      baseHex,
+      symbolColor,
+      overlayColor,
+      cssBackground,
+      borderAlpha: style === 'transparent' || opacity <= 0.05 ? 0.14 : 0.38
+    };
+  }
+
   let lastTitleBarOverlayKey = '';
 
   function syncNativeWindowChrome(cfg, force = false) {
     try {
       if (window.electronNative && typeof window.electronNative.setTitleBarOverlay === 'function') {
+        const tbSpec = resolveTitleBarSpec(cfg);
         const nextOpts =
           cfg && cfg.enabled
             ? {
-                color: normalizeHex6((cfg.colors || {}).sidebar || (cfg.colors || {}).background, '#0e071c'),
-                symbolColor: normalizeHex6((cfg.colors || {}).foreground, '#f8fafc')
+                color: tbSpec.overlayColor,
+                symbolColor: tbSpec.symbolColor
               }
             : {
                 color: '#111114',
@@ -3844,7 +3979,32 @@
           return;
         }
         lastTitleBarOverlayKey = nextKey;
-        window.electronNative.setTitleBarOverlay(nextOpts);
+        const applyOverlay = (opts) => {
+          const res = window.electronNative.setTitleBarOverlay(opts);
+          if (res && typeof res.catch === 'function') {
+            res.catch(() => {
+              if (opts.color && opts.color.length === 9) {
+                try {
+                  window.electronNative.setTitleBarOverlay({
+                    color: opts.color.slice(0, 7),
+                    symbolColor: opts.symbolColor
+                  });
+                } catch (_) {}
+              }
+            });
+          }
+        };
+        try {
+          applyOverlay(nextOpts);
+        } catch (_) {
+          const fallbackColor = nextOpts.color.length === 9 ? nextOpts.color.slice(0, 7) : '#0e071c';
+          try {
+            window.electronNative.setTitleBarOverlay({
+              color: fallbackColor,
+              symbolColor: nextOpts.symbolColor
+            });
+          } catch (_) {}
+        }
       }
     } catch (_) {}
   }
@@ -4026,6 +4186,23 @@
   window.addEventListener('pointerup', clearPointerPressed, { capture: true, passive: true });
   window.addEventListener('pointercancel', clearPointerPressed, { capture: true, passive: true });
   window.addEventListener('blur', clearPointerPressed, { passive: true });
+  window.addEventListener(
+    'focus',
+    () => {
+      if (currentConfig && currentConfig.enabled) {
+        syncNativeWindowChrome(currentConfig, true);
+      }
+    },
+    { passive: true }
+  );
+  // Re-assert native titleBarOverlay after React hydration in case Antigravity resets it on boot
+  [600, 1800, 3500].forEach((delayMs) => {
+    setTimeout(() => {
+      if (currentConfig && currentConfig.enabled) {
+        syncNativeWindowChrome(currentConfig, true);
+      }
+    }, delayMs);
+  });
 
   // Re-sync native titleBarOverlay only when Antigravity's theme attributes change (never on html[style] scroll-locks!),
   // and keep the AGY Studio button anchored next to the 3-dot menu beside Open IDE across React route updates.

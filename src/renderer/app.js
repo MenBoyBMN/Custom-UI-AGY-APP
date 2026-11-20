@@ -217,11 +217,26 @@
     mockWindow.style.fontSize = `${Math.round((Number(typo.fontScale || 100) / 100) * 14)}px`;
 
     // Titlebar
+    const tbStyle =
+      l.titleBarStyle === 'match-theme' || l.titleBarStyle === 'custom' || l.titleBarStyle === 'transparent'
+        ? l.titleBarStyle
+        : 'transparent';
+    const tbOpacity =
+      !isEnabled
+        ? 0.96
+        : tbStyle === 'transparent'
+          ? 0
+          : Number.isFinite(Number(l.titleBarOpacity))
+            ? Math.max(0, Math.min(1, Number(l.titleBarOpacity)))
+            : 0.45;
+    const tbBaseRgb =
+      tbStyle === 'custom' ? hexToRgb(l.titleBarColor || c.sidebar, sidebarRgb) : sidebarRgb;
     const mockTitlebar = mockWindow.querySelector('.agy-mock-titlebar');
     if (mockTitlebar) {
-      mockTitlebar.style.background = `rgba(${sidebarRgb}, ${Math.min(0.92, opacity + 0.08)})`;
-      mockTitlebar.style.borderBottomColor = `rgba(${borderRgb}, 0.42)`;
-      mockTitlebar.style.color = fgHex;
+      mockTitlebar.style.background =
+        tbOpacity <= 0.004 ? 'transparent' : `rgba(${tbBaseRgb}, ${tbOpacity})`;
+      mockTitlebar.style.borderBottomColor = `rgba(${borderRgb}, ${tbOpacity <= 0.05 ? 0.14 : 0.42})`;
+      mockTitlebar.style.color = (isEnabled && l.titleBarSymbolColor) || fgHex;
     }
     const mockWinShortcut = mockWindow.querySelector('.mock-win-shortcut');
     if (mockWinShortcut) {
@@ -1011,6 +1026,53 @@
           </div>
         </div>
 
+        ${(() => {
+          const tbStyle =
+            cfg.layout.titleBarStyle === 'match-theme' ||
+            cfg.layout.titleBarStyle === 'custom' ||
+            cfg.layout.titleBarStyle === 'transparent'
+              ? cfg.layout.titleBarStyle
+              : 'transparent';
+          const tbOpacity =
+            tbStyle === 'transparent'
+              ? 0
+              : Number.isFinite(Number(cfg.layout.titleBarOpacity))
+                ? Math.max(0, Math.min(1, Number(cfg.layout.titleBarOpacity)))
+                : 0.45;
+          const tbColor = cfg.layout.titleBarColor || cfg.colors?.sidebar || '#0e071c';
+          const tbSymbol = cfg.layout.titleBarSymbolColor || cfg.colors?.foreground || '#f8fafc';
+          return `
+        <div class="ctrl-card">
+          <div class="ctrl-card-title">Thanh Điều Hướng Trên Cùng &amp; 3 Nút Cửa Sổ (— ❐ ✕)</div>
+          <div class="ctrl-card-sub">
+            Làm trong suốt hoàn toàn khung đen chứa 3 nút thu nhỏ/phóng to/đóng cửa sổ để hòa mượt vào hình nền, hoặc chọn màu nền &amp; độ mờ riêng.
+          </div>
+          <div class="ctrl-row">
+            <span>Chế độ nền thanh trên cùng</span>
+            <select class="ctrl-select" id="l-tb-style">
+              <option value="transparent" ${tbStyle === 'transparent' ? 'selected' : ''}>Trong suốt hoàn toàn (Hòa hình nền)</option>
+              <option value="match-theme" ${tbStyle === 'match-theme' ? 'selected' : ''}>Đồng bộ màu Theme (Có độ mờ)</option>
+              <option value="custom" ${tbStyle === 'custom' ? 'selected' : ''}>Chọn màu nền riêng</option>
+            </select>
+          </div>
+          <div class="ctrl-row">
+            <span>Độ mờ nền thanh trên <span class="val-pill"><span id="l-tb-opacity-val">${Math.round(tbOpacity * 100)}</span>%</span></span>
+            <input type="range" class="ctrl-range" id="l-tb-opacity" min="0" max="1" step="0.02" value="${tbOpacity}" />
+          </div>
+          <div class="ctrl-row">
+            <span>Màu nền thanh trên cùng (Chế độ màu riêng)</span>
+            <input type="color" id="l-tb-color" value="${escapeHtml(tbColor)}" />
+          </div>
+          <div class="ctrl-row">
+            <span>Màu biểu tượng 3 nút (— ❐ ✕)</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input type="color" id="l-tb-symbol" value="${escapeHtml(tbSymbol)}" />
+              <button type="button" class="btn-ghost" id="l-tb-symbol-auto" style="padding:4px 10px;font-size:12px;">Tự động</button>
+            </div>
+          </div>
+        </div>`;
+        })()}
+
         <div class="ctrl-card">
           <div class="ctrl-card-title">Font Chữ &amp; Tỷ Lệ Hiển Thị (Typography)</div>
           <div class="ctrl-card-sub">Tùy chỉnh font chữ giao diện, font code Monospace và tỷ lệ phóng to/thu nhỏ chữ.</div>
@@ -1122,6 +1184,69 @@
       });
       controlsPanel.querySelector('#l-zen')?.addEventListener('change', (e) => {
         cfg.layout.zenMode = e.target.checked;
+        syncLivePreview();
+      });
+
+      const syncStandaloneTitleBarUi = () => {
+        const style =
+          cfg.layout.titleBarStyle === 'match-theme' ||
+          cfg.layout.titleBarStyle === 'custom' ||
+          cfg.layout.titleBarStyle === 'transparent'
+            ? cfg.layout.titleBarStyle
+            : 'transparent';
+        const op =
+          style === 'transparent'
+            ? 0
+            : Number.isFinite(Number(cfg.layout.titleBarOpacity))
+              ? Math.max(0, Math.min(1, Number(cfg.layout.titleBarOpacity)))
+              : 0.45;
+        const styleSel = controlsPanel.querySelector('#l-tb-style');
+        if (styleSel) styleSel.value = style;
+        const opInput = controlsPanel.querySelector('#l-tb-opacity');
+        if (opInput) opInput.value = String(op);
+        setLabelText('#l-tb-opacity-val', Math.round(op * 100));
+        const symInput = controlsPanel.querySelector('#l-tb-symbol');
+        if (symInput) symInput.value = cfg.layout.titleBarSymbolColor || cfg.colors?.foreground || '#f8fafc';
+      };
+
+      controlsPanel.querySelector('#l-tb-style')?.addEventListener('change', (e) => {
+        const nextStyle = e.target.value;
+        cfg.layout.titleBarStyle = nextStyle;
+        if (nextStyle === 'transparent') {
+          cfg.layout.titleBarOpacity = 0;
+        } else if (Number(cfg.layout.titleBarOpacity || 0) <= 0.01) {
+          cfg.layout.titleBarOpacity = 0.45;
+        }
+        syncStandaloneTitleBarUi();
+        syncLivePreview();
+      });
+      controlsPanel.querySelector('#l-tb-opacity')?.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        cfg.layout.titleBarOpacity = val;
+        if (val <= 0.004) {
+          cfg.layout.titleBarStyle = 'transparent';
+        } else if (cfg.layout.titleBarStyle === 'transparent') {
+          cfg.layout.titleBarStyle = 'match-theme';
+        }
+        syncStandaloneTitleBarUi();
+        syncLivePreview();
+      });
+      controlsPanel.querySelector('#l-tb-color')?.addEventListener('input', (e) => {
+        cfg.layout.titleBarColor = e.target.value;
+        cfg.layout.titleBarStyle = 'custom';
+        if (Number(cfg.layout.titleBarOpacity || 0) <= 0.01) {
+          cfg.layout.titleBarOpacity = 0.65;
+        }
+        syncStandaloneTitleBarUi();
+        syncLivePreview();
+      });
+      controlsPanel.querySelector('#l-tb-symbol')?.addEventListener('input', (e) => {
+        cfg.layout.titleBarSymbolColor = e.target.value;
+        syncLivePreview();
+      });
+      controlsPanel.querySelector('#l-tb-symbol-auto')?.addEventListener('click', () => {
+        cfg.layout.titleBarSymbolColor = '';
+        syncStandaloneTitleBarUi();
         syncLivePreview();
       });
       controlsPanel.querySelector('#t-uifont')?.addEventListener('change', (e) => {
